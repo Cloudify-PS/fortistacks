@@ -5,34 +5,38 @@ tosca_definitions_version: cloudify_dsl_1_3
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5.5/types.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/2.14.7/plugin.yaml
-    #- plugin:cloudify-openstack-plugin
+  #- plugin:cloudify-openstack-plugin
   - plugin:cloudify-utilities-plugin
 
-
+inputs:
+  provider_router:
+    default: router1
 
 dsl_definitions:
 
 # The configuration of openstack access is in the file /etc/cloudify/openstack_config.json
 # For simplicity of blueprint reading.
 
-#  ##openstack_config: &openstack_config
-#    username: { get_secret: keystone_username }
-#    password: { get_secret: keystone_password }
-#    tenant_name: { get_secret: keystone_tenant_name }
-#    auth_url: { get_secret: keystone_url }
-#    region: { get_secret: region }
+  openstack_config: &openstack_config
+    username: { get_secret: keystone_username }
+    password: { get_secret: keystone_password }
+    tenant_name: { get_secret: keystone_tenant_name }
+    auth_url: { get_secret: keystone_url }
+    region: { get_secret: keystone_region }
 
 node_templates:
 
   dc_router:
     type: cloudify.openstack.nodes.Router
     properties:
+      openstack_config: *openstack_config
       resource_id: dc-router
       external_network: { get_input: external_network_name }
 
   routes_wan:
     type: cloudify.openstack.nodes.Routes
     properties:
+      openstack_config: *openstack_config
       routes:
         - destination: 10.20.20.0/24
           nexthop: 10.40.40.254
@@ -51,24 +55,27 @@ node_templates:
   provider_router:
     type: cloudify.openstack.nodes.Router
     properties:
-      resource_id: provider-router
+      openstack_config: *openstack_config
+      resource_id: { get_input: provider_router }
       use_external_resource: true
 
   wan_network:
     type: cloudify.openstack.nodes.Network
     properties:
+      openstack_config: *openstack_config
       resource_id: wan_network
 
   isp_network:
     type: cloudify.openstack.nodes.Network
     properties:
+      openstack_config: *openstack_config
       resource_id: isp_network
 
 
   wan_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
-      ##openstack_config: *openstack_config
+      openstack_config: *openstack_config
       resource_id: wan_subnet
       subnet:
         host_routes: [ {"nexthop": "10.40.40.254", "destination": "10.20.20.0/24"} , {"nexthop": "10.40.40.1", "destination": "172.27.40.0/24"} ]
@@ -100,6 +107,7 @@ node_templates:
   isp_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
+      openstack_config: *openstack_config
       resource_id: isp_subnet
       subnet:
         host_routes: [ {"nexthop": "10.20.20.254", "destination": "10.40.40.0/24"}  ]
@@ -130,14 +138,15 @@ node_templates:
   wan_port:
     type: cloudify.openstack.nodes.Port
     properties:
+      openstack_config: *openstack_config
       resource_id: wan_port
       fixed_ip: "10.40.40.254"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create:
-          inputs:
-            args:
-              port_security_enabled: False
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            args:
+#              port_security_enabled: False
     relationships:
       - target: wan_network
         type: cloudify.relationships.contained_in
@@ -147,14 +156,15 @@ node_templates:
   isp_port:
     type: cloudify.openstack.nodes.Port
     properties:
+      openstack_config: *openstack_config
       resource_id: isp_port
       fixed_ip: "10.20.20.254"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create:
-          inputs:
-            args:
-              port_security_enabled: False
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        create:
+#          inputs:
+#            args:
+#              port_security_enabled: False
     relationships:
       - target: isp_network
         type: cloudify.relationships.contained_in
@@ -209,6 +219,8 @@ node_templates:
    # on citycloud xenial there python3 only must be installed then
   netem_floating_ip:
     type: cloudify.openstack.nodes.FloatingIP
+    properties:
+      openstack_config: *openstack_config
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
@@ -219,6 +231,7 @@ node_templates:
   netem:
     type: cloudify.openstack.nodes.Server
     properties:
+      openstack_config: *openstack_config
       server:
         image_name: { get_input: ub_image }
         flavor_name: { get_input: fos_flavor }
