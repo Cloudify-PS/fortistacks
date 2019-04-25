@@ -1,4 +1,4 @@
-fos_image: 'Fortigate-DHCP'
+fos_image: 'FGT_VM64_KVM-6.0.4'
 fos_flavor: '1C-1GB-50GB'
 ub_image: 'Ubuntu_16.04'
 ub_flavor: '2C-4GB-50GB'

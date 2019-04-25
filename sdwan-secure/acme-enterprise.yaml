@@ -171,6 +171,17 @@ node_templates:
             args:
               floating_network_name: { get_input: external_network_name }
 
+  fortigate_image:
+    type: cloudify.openstack.nodes.Image
+    properties:
+      image:
+        container_format: "bare"
+        disk_format: "qcow2"
+      openstack_config: *openstack_config
+      use_external_resource: True
+      create_if_missing: False
+      resource_id: { get_input: fos_image }
+
   # Cloud config for fortigate, responsible for license file upload which is being applied at installation
   branchea_fortigate_cloud_config:
     type: cloudify.nodes.CloudInit.CloudConfig
@@ -186,19 +197,17 @@ node_templates:
     type: cloudify.openstack.nodes.Server
     properties:
       openstack_config: *openstack_config
-      server:
-        image_name: { get_input: fos_image }
-        flavor_name: { get_input: fos_flavor }
-        #useless key_name for fortinet but mandatory for openstack
-        key_name: { get_input: key_name }
-      agent_config:
-        install_method: none # do not install agent
       management_network_name: { get_input: mgmt_network_name }
+      agent_config:
+        install_method: none
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
           inputs:
             args:
+              name: branchea_fortigate
+              image:  { get_property: [ fortigate_image, resource_id ] }
+              flavor_name: { get_input: fos_flavor }
               userdata: { get_attribute: [ branchea_fortigate_cloud_config, cloud_config ] }
     relationships:
       - target: fosa_floating_ip
@@ -219,6 +228,8 @@ node_templates:
         type: cloudify.relationships.depends_on
       - type: cloudify.relationships.depends_on
         target: branchea_fortigate_cloud_config
+      - type: cloudify.relationships.depends_on
+        target: fortigate_image
 
   branchea_fortigate_config:
     type: cloudify.terminal.raw
@@ -237,7 +248,7 @@ node_templates:
                 - "Command fail."
             calls:
               - action: exit
-        configure:
+        start:
           inputs:
             terminal_auth: *terminal_auth
             calls:
@@ -245,8 +256,6 @@ node_templates:
     relationships:
       - type: cloudify.relationships.depends_on
         target: branchea_fortigate
-
-
 
   branchea_ub_floating_ip:
     type: cloudify.openstack.nodes.FloatingIP
