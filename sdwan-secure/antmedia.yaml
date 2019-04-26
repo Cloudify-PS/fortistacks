@@ -165,9 +165,6 @@ node_templates:
         user: { get_input: agent_user }
         port: 22
         key: { get_secret: agent_key_private }
-          #network: mgmt_network
-            ##
-      ##openstack_config: *openstack_config
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
@@ -183,6 +180,8 @@ node_templates:
         type: cloudify.openstack.server_connected_to_floating_ip
       - target: antmedia_security_group
         type: cloudify.openstack.server_connected_to_security_group
+      - target: antmedia_host_cloud_config
+        type: cloudify.relationships.depends_on
 
 
   antmedia:

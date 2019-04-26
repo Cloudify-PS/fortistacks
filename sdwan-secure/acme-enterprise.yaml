@@ -128,7 +128,7 @@ node_templates:
       openstack_config: *openstack_config
       resource_id: branchea_subnet
       subnet:
-        host_routes: [ {"nexthop": "192.168.12.254", "destination": "10.0.0.0/8"}, {"nexthop": "192.168.12.254", "destination": "172.27.40.0/24"} ]
+        #host_routes: [ {"nexthop": "192.168.12.254", "destination": "10.0.0.0/8"}, {"nexthop": "192.168.12.254", "destination": "172.27.40.0/24"} ]
         cidr: 192.168.12.0/24
         allocation_pools:
         - start: 192.168.12.3
@@ -340,6 +340,34 @@ node_templates:
         type: cloudify.relationships.depends_on
       - target: branchea_ub_floating_ip
         type: cloudify.openstack.server_connected_to_floating_ip
+
+#  add-fortigate-tofmg:
+#    type: cloudify.fortinet.fortimanager
+#    properties:
+#      host: { get_input: fmg_ip }
+#      username: "admin"
+#      password: { get_secret: fmg_password }
+#      use_ssl: True
+#      verify_ssl: False
+#    interfaces:
+#      cloudify.interfaces.lifecycle:
+#        start:
+#          inputs:
+#            template_file: templates/add-fortigate.yaml
+#            params:
+#              fgt_password: "fortinet"
+#              fgt_ip: { get_attribute: [branchea_fortigate, ip ] }
+#              fgt_user: "admin"
+#              fgt_name: "branchea_fortigate"
+#        stop:
+#          inputs:
+#            template_file: templates/remove-fortigate.yaml
+#            params:
+#              fgt_name: "branchea_fortigate"
+#    relationships:
+#      - target:  branchea_fortigate
+#        type: cloudify.relationships.depends_on
+
 
 # creating output for easing the testing:
 outputs:
