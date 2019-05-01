@@ -7,11 +7,11 @@ description: >
   $ cfy secret create fgt_license -f ../fortigate/FGT.lic
 imports:
   - http://www.getcloudify.org/spec/cloudify/4.5.5/types.yaml
-  - http://www.getcloudify.org/spec/openstack-plugin/2.14.7/plugin.yaml
-  #- plugin:cloudify-openstack-plugin
+    #- http://www.getcloudify.org/spec/openstack-plugin/2.14.7/plugin.yaml
+  - plugin:cloudify-openstack-plugin
   - plugin:cloudify-utilities-plugin
   - includes/wan.yaml
-
+  - plugins/cloudify-fortimanager-plugin/plugin.yaml
 
 inputs:
   fos_image:
@@ -36,7 +36,10 @@ inputs:
     type: string
     description: Name of the Fortigate license file (It will be uploaded to Fortigate VM with this name). It should have .lic file extension.
     default: FGVM00TM19001469.lic
-
+  fortigate_location:
+    default: "https://s3-eu-west-1.amazonaws.com/cloudify-labs/images/fortios.qcow2"
+  fmg_ip:
+    default: {}
 
 dsl_definitions:
 
@@ -177,6 +180,7 @@ node_templates:
       image:
         container_format: "bare"
         disk_format: "qcow2"
+      image_url: { get_input: fortigate_location }
       openstack_config: *openstack_config
       use_external_resource: True
       create_if_missing: False
@@ -212,8 +216,6 @@ node_templates:
     relationships:
       - target: fosa_floating_ip
         type: cloudify.openstack.server_connected_to_floating_ip
-      - target: brancheA_port
-        type: cloudify.relationships.depends_on
       - target: mpls_network
         type: cloudify.relationships.connected_to
       - target: mpls_subnet
@@ -224,8 +226,6 @@ node_templates:
         type: cloudify.relationships.depends_on
       - target: brancheA_port
         type: cloudify.relationships.connected_to
-      - target: brancheA_port
-        type: cloudify.relationships.depends_on
       - type: cloudify.relationships.depends_on
         target: branchea_fortigate_cloud_config
       - type: cloudify.relationships.depends_on
@@ -341,32 +341,32 @@ node_templates:
       - target: branchea_ub_floating_ip
         type: cloudify.openstack.server_connected_to_floating_ip
 
-#  add-fortigate-tofmg:
-#    type: cloudify.fortinet.fortimanager
-#    properties:
-#      host: { get_input: fmg_ip }
-#      username: "admin"
-#      password: { get_secret: fmg_password }
-#      use_ssl: True
-#      verify_ssl: False
-#    interfaces:
-#      cloudify.interfaces.lifecycle:
-#        start:
-#          inputs:
-#            template_file: templates/add-fortigate.yaml
-#            params:
-#              fgt_password: "fortinet"
-#              fgt_ip: { get_attribute: [branchea_fortigate, ip ] }
-#              fgt_user: "admin"
-#              fgt_name: "branchea_fortigate"
-#        stop:
-#          inputs:
-#            template_file: templates/remove-fortigate.yaml
-#            params:
-#              fgt_name: "branchea_fortigate"
-#    relationships:
-#      - target:  branchea_fortigate
-#        type: cloudify.relationships.depends_on
+  add-fortigate-tofmg:
+    type: cloudify.fortinet.fortimanager
+    properties:
+      host: { get_input: fmg_ip }
+      username: "admin"
+      password: { get_secret: fmg_password }
+      use_ssl: True
+      verify_ssl: False
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            template_file: templates/add-fortigate.yaml
+            params:
+              fgt_password: "fortinet"
+              fgt_ip: { get_attribute: [branchea_fortigate, ip ] }
+              fgt_user: "admin"
+              fgt_name: "branchea_fortigate"
+        stop:
+          inputs:
+            template_file: templates/remove-fortigate.yaml
+            params:
+              fgt_name: "branchea_fortigate"
+    relationships:
+      - target:  branchea_fortigate
+        type: cloudify.relationships.depends_on
 
 
 # creating output for easing the testing:
