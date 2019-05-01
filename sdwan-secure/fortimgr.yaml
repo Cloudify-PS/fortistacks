@@ -1,0 +1,149 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+description: >
+  Deployment of 2 networks  with a VM as a router in the middle.
+  On the router VM netem simulate a WAN. MPLS is a normal network.
+  To be run before deployment:
+  $ cfy secret create fgt_license -f ../fortigate/FGT.lic
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.5.5/types.yaml
+    #- http://www.getcloudify.org/spec/openstack-plugin/2.14.7/plugin.yaml
+  - plugin:cloudify-openstack-plugin
+  - plugin:cloudify-utilities-plugin
+
+
+inputs:
+  fmgr_image:
+    default: {}
+  fmgr_flavor:
+    default: {}
+  key_name:
+    default: {}
+
+  mgmt_network_name:
+    default: "mgmt"
+  external_network_name:
+    default: "ext_net"
+  fortimanager_location:
+    default: "https://s3-eu-west-1.amazonaws.com/cloudify-labs/images/fmg.qcow2"
+
+    #  fortigate_license_filename:
+    #type: string
+    #description: Name of the Fortigate license file (It will be uploaded to Fortigate VM with this name). It should have .lic file extension.
+    #default: FGVM00TM19001469.lic
+
+
+dsl_definitions:
+
+  openstack_config: &openstack_config
+    username: { get_secret: keystone_username }
+    password: { get_secret: keystone_password }
+    tenant_name: { get_secret: keystone_tenant_name }
+    auth_url: { get_secret: keystone_url }
+    region: { get_secret: keystone_region }
+
+node_templates:
+
+
+  fortimanager_image:
+    type: cloudify.openstack.nodes.Image
+    properties:
+      image:
+        container_format: "bare"
+        disk_format: "qcow2"
+      image_url: { get_input: fortimanager_location }
+      openstack_config: *openstack_config
+      use_external_resource: True
+      create_if_missing: True
+      resource_id: { get_input: fmgr_image }
+
+      #  fortimanager_cloud_config:
+      #type: cloudify.nodes.CloudInit.CloudConfig
+      #properties:
+      #resource_config:
+      #  write_files:
+      #    - path: { get_input: fortimanager_license_filename }
+      #      owner: root:root
+      #      permissions: '0444'
+      #      content: { get_secret: fmgr_license }
+
+  fortimanager:
+    type: cloudify.openstack.nodes.Server
+    properties:
+      openstack_config: *openstack_config
+      management_network_name: { get_input: mgmt_network_name }
+      agent_config:
+        install_method: none
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            args:
+              name: fortimanager
+              image:  { get_property: [ fortimanager_image, resource_id ] }
+              flavor_name: { get_input: fmgr_flavor }
+              #              userdata: { get_attribute: [ fortimanager_cloud_config, cloud_config ] }
+    relationships:
+            #      - type: cloudify.relationships.depends_on
+            #target: fortimanager_cloud_config
+      - type: cloudify.relationships.depends_on
+        target: fortimanager_image
+      - target: floating_ip
+        type: cloudify.openstack.server_connected_to_floating_ip
+
+  volume:
+    type: cloudify.openstack.nodes.Volume
+    properties:
+      openstack_config: *openstack_config
+      volume:
+        size: 15
+    relationships:
+      - target: fortimanager
+        type: cloudify.openstack.volume_attached_to_server
+
+        #  fortimanager_config:
+        #type: cloudify.terminal.raw
+        #interfaces:
+        #cloudify.interfaces.lifecycle:
+        #create:
+        #  inputs:
+        #    terminal_auth: &terminal_auth
+        #      user: admin
+        #      password: ''
+        #      ip: { get_attribute: [fortimanager, ip ] }
+        #      promt_check:
+        #        - '#'
+        #        - '$'
+        #      errors:
+        #        - "Command fail."
+        #    calls:
+        #      - action: exit
+        #configure:
+        #  inputs:
+        #    terminal_auth: *terminal_auth
+        #    calls:
+        #      - template: scripts/fortimanager/fortimanager-config.txt
+        #start:
+        #  inputs:
+        #    terminal_auth: *terminal_auth
+        #    calls:
+        #      - template: scripts/fortimanager/fortimanager-start.txt
+        #        params:
+        #          fortimanager_ip: { get_attribute: [fortimanager, ip] }
+        #          fortimanager_gateway: 192.168.113.1
+        #relationships:
+        #- type: cloudify.relationships.depends_on
+        #target: fortimanager
+        #- type: cloudify.relationships.depends_on
+        #target: volume
+        #
+  floating_ip:
+    type: cloudify.openstack.nodes.FloatingIP
+    properties:
+      openstack_config: *openstack_config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            args:
+              floating_network_name: { get_input: external_network_name }

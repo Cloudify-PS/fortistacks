@@ -183,7 +183,7 @@ node_templates:
       image_url: { get_input: fortigate_location }
       openstack_config: *openstack_config
       use_external_resource: True
-      create_if_missing: False
+      create_if_missing: True
       resource_id: { get_input: fos_image }
 
   # Cloud config for fortigate, responsible for license file upload which is being applied at installation
