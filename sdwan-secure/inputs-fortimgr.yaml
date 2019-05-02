@@ -1,0 +1,5 @@
+fmgr_image: fortimgr
+fmgr_flavor: m1.medium
+key_name: ''
+mgmt_network_name: private_network
+external_network_name: external_network

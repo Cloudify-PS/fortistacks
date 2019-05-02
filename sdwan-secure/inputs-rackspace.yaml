@@ -1,0 +1,9 @@
+fos_image: fortios #59ba153a-df72-47c5-b31b-02d0ecc2fd6d
+fos_flavor: m1.small
+key_name: agent
+ub_image: Ubuntu 14.04.1 LTS Trusty Tahr (cloudimg) #05bb3a46-ca32-4032-bedd-8d7ebd5c8100
+ub_flavor: m1.small
+external_network_name: GATEWAY_NET
+mgmt_network_name: management-network
+fmg_ip: 172.168.1.29
+provider_router: cloudify-management-router

@@ -1,0 +1,8 @@
+fos_image: fortios #59ba153a-df72-47c5-b31b-02d0ecc2fd6d
+fos_flavor: m1.small
+key_name: agent
+ub_image: Ubuntu14 #05bb3a46-ca32-4032-bedd-8d7ebd5c8100
+ub_flavor: m1.small
+external_network_name: external_network
+mgmt_network_name: private_network
+fmg_ip: 192.168.113.5
