@@ -365,7 +365,7 @@ node_templates:
             params:
               fgt_name: "branchea_fortigate"
     relationships:
-      - target:  branchea_fortigate
+      - target:  branchea_fortigate_config
         type: cloudify.relationships.depends_on
 
 

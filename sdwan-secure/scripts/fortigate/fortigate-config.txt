@@ -28,6 +28,7 @@ edit port4
   set defaultgw disable
   next
 end
+get system admin
 config router static
     edit 1
         set dst 172.27.40.0 255.255.255.0
@@ -40,12 +41,14 @@ config router static
         set device "port2"
     next
 end
+get system admin
 config firewall address
     edit "DC"
         set color 6
         set subnet 172.27.40.0 255.255.255.0
     next
 end
+get system admin
 config system virtual-wan-link
   set status enable
   set load-balance-mode source-dest-ip-based
